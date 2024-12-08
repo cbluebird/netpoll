@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"runtime"
 	"sync"
@@ -82,8 +83,10 @@ func TestEqual(t *testing.T) {
 func TestOnConnect(t *testing.T) {
 	network, address := "tcp", getTestAddress()
 	req, resp := "ping", "pong"
+	log.Println("TestOnConnect")
 	loop := newTestEventLoop(network, address,
 		func(ctx context.Context, connection Connection) error {
+			log.Println("OnRequest")
 			return nil
 		},
 		WithOnConnect(func(ctx context.Context, conn Connection) context.Context {

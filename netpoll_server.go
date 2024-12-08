@@ -20,6 +20,7 @@ package netpoll
 import (
 	"context"
 	"errors"
+	"log"
 	"strings"
 	"sync"
 	"syscall"
@@ -50,6 +51,7 @@ func (s *server) Run() (err error) {
 		OnRead: s.OnRead,
 		OnHup:  s.OnHup,
 	}
+	log.Println("Pick listen poller for server")
 	s.operator.poll = pollmanager.Pick()
 	err = s.operator.Control(PollReadable)
 	if err != nil {
@@ -101,6 +103,7 @@ func (s *server) OnRead(p Poll) error {
 	conn, err := s.ln.Accept()
 	if err == nil {
 		if conn != nil {
+			log.Println("NETPOLL: accept conn success:", conn.RemoteAddr())
 			s.onAccept(conn.(Conn))
 		}
 		// EAGAIN | EWOULDBLOCK if conn and err both nil

@@ -83,6 +83,7 @@ type listener struct {
 }
 
 // Accept implements Listener.
+// 服务器会先创建一个监听套接字并绑定到一个地址上，然后调用 listen 函数开始监听来自客户端的连接,当有连接请求到来时. 用accept函数接受连接请求,并进行三次握手,返回一个新的fd,用于与客户端通信
 func (ln *listener) Accept() (net.Conn, error) {
 	// udp
 	if ln.pconn != nil {

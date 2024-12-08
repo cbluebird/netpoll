@@ -18,6 +18,7 @@
 package netpoll
 
 import (
+	"log"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -373,6 +374,7 @@ func (c *connection) initNetFD(conn Conn) {
 }
 
 func (c *connection) initFDOperator() {
+	log.Println("Pick poller for connection")
 	poll := pollmanager.Pick()
 	op := poll.Alloc()
 	op.FD = c.fd

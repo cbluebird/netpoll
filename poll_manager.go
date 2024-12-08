@@ -19,6 +19,7 @@ package netpoll
 
 import (
 	"fmt"
+	"log"
 	"runtime"
 	"sync/atomic"
 )
@@ -38,6 +39,8 @@ func newManager(numLoops int) *manager {
 
 // LoadBalance is used to do load balancing among multiple pollers.
 // a single poller may not be optimal if the number of cores is large (40C+).
+// manager 用于管理多个 poller, 将fd平均分配到多个 poller 上,来负载均衡多个epoll上的fd数量,避免单个epoll上的fd数量过多
+// 需要理解的是netpoll并不关心fd的依赖关系,只是负责将fd平均分配到多个poller上，避免单个poller也就是epoll上的fd数量过多
 type manager struct {
 	numLoops int32
 	status   int32       // 0: uninitialized, 1: initializing, 2: initialized
@@ -46,6 +49,7 @@ type manager struct {
 }
 
 // SetNumLoops will return error when set numLoops < 1
+// 初始化多路复用池 / 运行时调用该函数实现动态扩缩容
 func (m *manager) SetNumLoops(numLoops int) (err error) {
 	if numLoops < 1 {
 		return fmt.Errorf("set invalid numLoops[%d]", numLoops)
@@ -85,15 +89,18 @@ func (m *manager) Run() (err error) {
 	}()
 
 	numLoops := int(atomic.LoadInt32(&m.numLoops))
+	log.Println("NETPOLL: run with numLoops:", numLoops)
 	if numLoops == len(m.polls) {
 		return nil
 	}
 	polls := make([]Poll, numLoops)
 	if numLoops < len(m.polls) {
 		// shrink polls
+		// 对于无需缩减的部分，直接重新指向即可
 		copy(polls, m.polls[:numLoops])
 		for idx := numLoops; idx < len(m.polls); idx++ {
 			// close redundant polls
+			// 对于需要缩减的部分，直接Close关闭该多路复用器
 			if err = m.polls[idx].Close(); err != nil {
 				logger.Printf("NETPOLL: poller close failed: %v\n", err)
 			}
@@ -103,11 +110,13 @@ func (m *manager) Run() (err error) {
 		copy(polls, m.polls)
 		for idx := len(m.polls); idx < numLoops; idx++ {
 			var poll Poll
+			// 创建新的 poll 到资源池中
 			poll, err = openPoll()
 			if err != nil {
 				return err
 			}
 			polls[idx] = poll
+			// 每个多路复用器绑定一个协程，不断轮询注册到该epoll上的fd事件
 			go poll.Wait()
 		}
 	}

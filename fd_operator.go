@@ -20,18 +20,22 @@ import (
 )
 
 // FDOperator is a collection of operations on file descriptors.
+// 封装多路复用器操作的对象
 type FDOperator struct {
 	// FD is file descriptor, poll will bind when register.
+	// epoll 监听的 fd
 	FD int
 
 	// The FDOperator provides three operations of reading, writing, and hanging.
 	// The poll actively fire the FDOperator when fd changes, no check the return value of FDOperator.
-	OnRead  func(p Poll) error
-	OnWrite func(p Poll) error
+	// 监听到读写事件后的回调函数
+	OnRead  func(p Poll) error // accept 事件回调
+	OnWrite func(p Poll) error // 客户端 socket 写回调
 	OnHup   func(p Poll) error
 
 	// The following is the required fn, which must exist when used, or directly panic.
 	// Fns are only called by the poll when handles connection events.
+	// linkbuffer 与 socket 缓冲区之间的读写API
 	Inputs   func(vs [][]byte) (rs [][]byte)
 	InputAck func(n int) (err error)
 

@@ -29,6 +29,7 @@ func openPoll() (Poll, error) {
 	return openDefaultPoll()
 }
 
+// openDefaultPoll 创建epoll 封装多路复用器的对象
 func openDefaultPoll() (*defaultPoll, error) {
 	l := new(defaultPoll)
 	p, err := syscall.Kqueue()
